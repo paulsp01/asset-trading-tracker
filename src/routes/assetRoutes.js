@@ -11,18 +11,26 @@ const {
 const { authenticateJWT } = require("../middlewares/authMiddleware");
 
 // Create asset (save as draft)
-router.post("/", authenticateJWT, createAsset);
+
+
+
+router.get("/test-header", (req, res) => {
+  res.json({ headers: req.headers });
+});
+
+router.post("/assets", authenticateJWT, createAsset);
 
 // Update asset
-router.post("/:id", authenticateJWT, updateAsset);
+router.post("/assets/:id", authenticateJWT, updateAsset);
 
 // List asset on marketplace
-router.put("/:id/publish", authenticateJWT, publishAsset);
+router.put("/assets/:id/publish", authenticateJWT, publishAsset);
 
 // Get asset details
-router.get("/:id", getAssetDetails);
+router.get("/assets/:id", getAssetDetails);
 
 // Get user's assets
 router.get("/users/:id/assets", authenticateJWT, getUserAssets);
+
 
 module.exports = router;
