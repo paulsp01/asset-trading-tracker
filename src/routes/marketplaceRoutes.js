@@ -1,10 +1,11 @@
 // src/routes/marketplaceRoutes.js
 const express = require("express");
-const {
-  getAssetsOnMarketplace,
-} = require("../controllers/marketplaceController");
 const router = express.Router();
+const {
+  getMarketplaceAssets,
+} = require("../controllers/marketplaceController");
 
-router.get("/marketplace", getAssetsOnMarketplace);
+// Get assets on marketplace
+router.get("/assets", getMarketplaceAssets);
 
 module.exports = router;
