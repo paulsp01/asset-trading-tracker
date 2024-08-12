@@ -1,15 +1,15 @@
 // src/controllers/requestController.js
-const Asset = require("../models/Asset");
 const Request = require("../models/Request");
+const Asset = require("../models/Asset");
 
 exports.requestToBuyAsset = async (req, res) => {
+  const { id } = req.params;
   const { proposedPrice } = req.body;
   try {
     const request = new Request({
-      asset: req.params.id,
-      buyer: req.user.id,
+      asset: id,
+      buyer: req.user._id,
       proposedPrice,
-      status: "pending",
     });
     await request.save();
     res.status(201).json({ message: "Purchase request sent" });
@@ -19,14 +19,14 @@ exports.requestToBuyAsset = async (req, res) => {
 };
 
 exports.negotiateRequest = async (req, res) => {
+  const { id } = req.params;
   const { newProposedPrice } = req.body;
   try {
     const request = await Request.findByIdAndUpdate(
-      req.params.id,
+      id,
       { proposedPrice: newProposedPrice },
       { new: true }
     );
-    if (!request) return res.status(404).json({ message: "Request not found" });
     res.status(200).json({ message: "Negotiation updated" });
   } catch (err) {
     res.status(400).json({ message: err.message });
@@ -34,25 +34,25 @@ exports.negotiateRequest = async (req, res) => {
 };
 
 exports.acceptRequest = async (req, res) => {
+  const { id } = req.params;
   try {
-    const request = await Request.findById(req.params.id);
+    const request = await Request.findById(id).populate("asset");
     if (!request) return res.status(404).json({ message: "Request not found" });
 
-    const asset = await Asset.findById(request.asset);
-    if (!asset) return res.status(404).json({ message: "Asset not found" });
-
-    asset.currentHolder = request.buyer;
-    asset.tradingJourney.push({
-      holder: request.buyer,
-      date: new Date(),
-      price: request.proposedPrice,
+    // Update asset holder
+    await Asset.findByIdAndUpdate(request.asset._id, {
+      currentHolder: request.buyer,
+      $push: {
+        tradingJourney: {
+          holder: request.buyer,
+          date: new Date(),
+          price: request.proposedPrice,
+        },
+      },
+      $inc: { numberOfTransfers: 1 },
     });
-    asset.numberOfTransfers += 1;
-    asset.lastTradingPrice = request.proposedPrice;
-    await asset.save();
 
-    await Request.findByIdAndUpdate(request._id, { status: "accepted" });
-
+    // Send response
     res.status(200).json({ message: "Request accepted, holder updated" });
   } catch (err) {
     res.status(400).json({ message: err.message });
@@ -60,13 +60,9 @@ exports.acceptRequest = async (req, res) => {
 };
 
 exports.denyRequest = async (req, res) => {
+  const { id } = req.params;
   try {
-    const request = await Request.findByIdAndUpdate(
-      req.params.id,
-      { status: "denied" },
-      { new: true }
-    );
-    if (!request) return res.status(404).json({ message: "Request not found" });
+    await Request.findByIdAndUpdate(id, { status: "denied" }, { new: true });
     res.status(200).json({ message: "Request denied" });
   } catch (err) {
     res.status(400).json({ message: err.message });
@@ -74,8 +70,9 @@ exports.denyRequest = async (req, res) => {
 };
 
 exports.getUserRequests = async (req, res) => {
+  const { id } = req.params;
   try {
-    const requests = await Request.find({ buyer: req.user.id });
+    const requests = await Request.find({ buyer: id });
     res.status(200).json(requests);
   } catch (err) {
     res.status(400).json({ message: err.message });

@@ -1,66 +1,155 @@
-// tests/asset.test.js
 const request = require("supertest");
 const mongoose = require("mongoose");
-const app = require("../src/index");
-const User = require("../src/models/User");
+const app = require("../src/index"); // Assuming your Express app is exported from index.js
 const Asset = require("../src/models/Asset");
+const User = require("../src/models/User");
+const jwt = require("jsonwebtoken");
 
-let token;
-let userId;
+describe("Asset Management API", () => {
+  let token;
+  let userId;
 
-describe("Asset Management", () => {
-  before(async () => {
-    await mongoose.connect("mongodb://localhost:27017/asset-trading-test", {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
+  beforeAll(async () => {
+    await mongoose.connect(process.env.MONGO_URI);
 
-    const user = await User.create({
-      username: "testuser",
-      password: "password123", // Ensure password is hashed in real implementation
-      email: "testuser@example.com",
-    });
-    userId = user._id;
-
-    const res = await request(app).post("/auth/login").send({
+    // Create a user and get the token for authentication
+    const user = new User({
       username: "testuser",
       password: "password123",
+      email: "testuser@example.com",
     });
-    token = res.body.token;
+    await user.save();
+    userId = user._id;
+    token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
+      expiresIn: "1h",
+    });
   });
 
-  after(async () => {
-    await mongoose.connection.db.dropDatabase();
-    await mongoose.disconnect();
+  afterAll(async () => {
+    await mongoose.connection.dropDatabase();
+    await mongoose.connection.close();
   });
 
-  it("should create an asset", async () => {
+  afterEach(async () => {
+    await Asset.deleteMany({});
+  });
+
+  // Test creating an asset (both draft and published)
+  it("should create an asset in draft state", async () => {
     const res = await request(app)
       .post("/assets")
       .set("Authorization", `Bearer ${token}`)
       .send({
-        name: "Test Asset",
-        description: "Test Description",
-        image: "test-image-url",
+        name: "Draft Asset",
+        description: "This is a draft asset",
+        image: "image_url",
         status: "draft",
       });
-    res.status.should.equal(201);
-    res.body.message.should.equal("Asset created successfully");
-    res.body.assetId.should.be.a("string");
+
+    expect(res.statusCode).toEqual(201);
+    expect(res.body).toHaveProperty("message", "Asset created successfully");
+    expect(res.body).toHaveProperty("assetId");
   });
 
-  it("should get asset details", async () => {
-    const asset = await Asset.create({
-      name: "Test Asset",
-      description: "Test Description",
-      image: "test-image-url",
+  it("should create an asset in published state", async () => {
+    const res = await request(app)
+      .post("/assets")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        name: "Published Asset",
+        description: "This is a published asset",
+        image: "image_url",
+        status: "published",
+      });
+
+    expect(res.statusCode).toEqual(201);
+    expect(res.body).toHaveProperty("message", "Asset created successfully");
+    expect(res.body).toHaveProperty("assetId");
+  });
+
+  // Test listing an asset on the marketplace
+  it("should list an asset on the marketplace", async () => {
+    const asset = new Asset({
+      name: "Draft Asset",
+      description: "This is a draft asset",
+      image: "image_url",
       status: "draft",
       creator: userId,
-      currentHolder: userId,
     });
+    await asset.save();
 
-    const res = await request(app).get(`/assets/${asset._id}`);
-    res.status.should.equal(200);
-    res.body.name.should.equal("Test Asset");
+    const res = await request(app)
+      .put(`/assets/${asset._id}/publish`)
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(res.statusCode).toEqual(200);
+    expect(res.body).toHaveProperty("message", "Asset published successfully");
+
+    const updatedAsset = await Asset.findById(asset._id);
+    expect(updatedAsset.status).toEqual("published");
+  });
+
+  // Test retrieving asset details
+  it("should retrieve asset details", async () => {
+    const asset = new Asset({
+      name: "Test Asset",
+      description: "This is a test asset",
+      image: "image_url",
+      status: "published",
+      creator: userId,
+      currentHolder: userId,
+      tradingJourney: [],
+      averageTradingPrice: 100,
+      lastTradingPrice: 120,
+      numberOfTransfers: 2,
+      isListed: true,
+      proposals: 3,
+    });
+    await asset.save();
+
+    const res = await request(app)
+      .get(`/assets/${asset._id}`)
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(res.statusCode).toEqual(200);
+    expect(res.body).toHaveProperty("id", asset._id.toString());
+    expect(res.body).toHaveProperty("name", "Test Asset");
+    expect(res.body).toHaveProperty("tradingJourney");
+    expect(res.body).toHaveProperty("averageTradingPrice", 100);
+    expect(res.body).toHaveProperty("lastTradingPrice", 120);
+    expect(res.body).toHaveProperty("numberOfTransfers", 2);
+    expect(res.body).toHaveProperty("isListed", true);
+    expect(res.body).toHaveProperty("proposals", 3);
+  });
+
+  // Test retrieving user's assets
+  it("should retrieve all assets for a user", async () => {
+    await Asset.create([
+      {
+        name: "Asset 1",
+        description: "First asset",
+        image: "image_url_1",
+        status: "published",
+        creator: userId,
+        currentHolder: userId,
+      },
+      {
+        name: "Asset 2",
+        description: "Second asset",
+        image: "image_url_2",
+        status: "draft",
+        creator: userId,
+        currentHolder: userId,
+      },
+    ]);
+
+    const res = await request(app)
+      .get(`/users/${userId}/assets`)
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(res.statusCode).toEqual(200);
+    expect(res.body).toHaveLength(2);
+    expect(res.body[0]).toHaveProperty("name", "Asset 1");
+    expect(res.body[1]).toHaveProperty("name", "Asset 2");
   });
 });

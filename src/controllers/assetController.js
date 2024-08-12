@@ -9,8 +9,8 @@ exports.createAsset = async (req, res) => {
       description,
       image,
       status,
-      creator: req.user.id,
-      currentHolder: req.user.id,
+      creator: req.user._id,
+      currentHolder: req.user._id,
     });
     await asset.save();
     res
@@ -22,19 +22,14 @@ exports.createAsset = async (req, res) => {
 };
 
 exports.updateAsset = async (req, res) => {
+  const { id } = req.params;
   const { name, description, image, status } = req.body;
   try {
     const asset = await Asset.findByIdAndUpdate(
-      req.params.id,
-      {
-        name,
-        description,
-        image,
-        status,
-      },
+      id,
+      { name, description, image, status },
       { new: true }
     );
-    if (!asset) return res.status(404).json({ message: "Asset not found" });
     res
       .status(200)
       .json({ message: "Asset updated successfully", assetId: asset._id });
@@ -44,13 +39,13 @@ exports.updateAsset = async (req, res) => {
 };
 
 exports.publishAsset = async (req, res) => {
+  const { id } = req.params;
   try {
     const asset = await Asset.findByIdAndUpdate(
-      req.params.id,
+      id,
       { status: "published" },
       { new: true }
     );
-    if (!asset) return res.status(404).json({ message: "Asset not found" });
     res.status(200).json({ message: "Asset published successfully" });
   } catch (err) {
     res.status(400).json({ message: err.message });
@@ -58,10 +53,9 @@ exports.publishAsset = async (req, res) => {
 };
 
 exports.getAssetDetails = async (req, res) => {
+  const { id } = req.params;
   try {
-    const asset = await Asset.findById(req.params.id).populate(
-      "creator currentHolder"
-    );
+    const asset = await Asset.findById(id).populate("creator currentHolder");
     if (!asset) return res.status(404).json({ message: "Asset not found" });
     res.status(200).json(asset);
   } catch (err) {
@@ -70,8 +64,9 @@ exports.getAssetDetails = async (req, res) => {
 };
 
 exports.getUserAssets = async (req, res) => {
+  const { id } = req.params;
   try {
-    const assets = await Asset.find({ creator: req.user.id });
+    const assets = await Asset.find({ creator: id });
     res.status(200).json(assets);
   } catch (err) {
     res.status(400).json({ message: err.message });
