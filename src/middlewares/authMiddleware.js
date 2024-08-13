@@ -1,4 +1,4 @@
-// src/middlewares/authMiddleware.js
+
 require("dotenv").config();
 
 const jwt = require("jsonwebtoken");
@@ -20,25 +20,24 @@ const  JWT_SECRET  = process.env.JWT_SECRET;
 // };
 
 exports.authenticateJWT = (req, res, next) => {
-  // Get the token from the 'Authorization' header
-
+ 
   console.log("JWT_SECRET:", process.env.JWT_SECRET);
   const authHeader = req.headers["authorization"];
-  console.log("Authorization Header:", authHeader); // Debugging log
+  console.log("Authorization Header:", authHeader);
 
-  // Extract token from 'Bearer <token>'
+ 
   const token =
     authHeader && authHeader.startsWith("Bearer ")
       ? authHeader.split(" ")[1]
       : undefined;
-  console.log("Token received:", token); // Debugging log
+  console.log("Token received:", token); 
 
   if (!token) return res.status(403).json({ message: "Access denied" });
 
-  // Verify the token
+  
   jwt.verify(token, JWT_SECRET, (err, user) => {
     if (err) {
-      console.error("JWT verification error:", err); // Debugging log
+      console.error("JWT verification error:", err); 
       return res.status(403).json({ message: "Invalid token" });
     }
     req.user = user;

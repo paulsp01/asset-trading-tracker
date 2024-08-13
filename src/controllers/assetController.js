@@ -1,4 +1,4 @@
-// src/controllers/assetController.js
+
 const Asset = require("../models/Asset");
 
 exports.createAsset = async (req, res) => {

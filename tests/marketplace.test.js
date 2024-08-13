@@ -1,6 +1,6 @@
 const request = require("supertest");
 const mongoose = require("mongoose");
-const app = require("../src/index"); // Assuming your Express app is exported from index.js
+const app = require("../src/index"); 
 const Asset = require("../src/models/assetModel");
 const Request = require("../src/models/requestModel");
 const User = require("../src/models/userModel");

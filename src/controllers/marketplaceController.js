@@ -1,4 +1,4 @@
-// src/controllers/marketplaceController.js
+
 const Asset = require("../models/Asset");
 
 exports.getMarketplaceAssets = async (req, res) => {

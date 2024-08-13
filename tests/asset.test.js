@@ -1,6 +1,6 @@
 const request = require("supertest");
 const mongoose = require("mongoose");
-const app = require("../src/index"); // Assuming your Express app is exported from index.js
+const app = require("../src/index"); 
 const Asset = require("../src/models/Asset");
 const User = require("../src/models/User");
 const jwt = require("jsonwebtoken");
@@ -12,7 +12,7 @@ describe("Asset Management API", () => {
   beforeAll(async () => {
     await mongoose.connect(process.env.MONGO_URI);
 
-    // Create a user and get the token for authentication
+   
     const user = new User({
       username: "testuser",
       password: "password123",
@@ -34,7 +34,7 @@ describe("Asset Management API", () => {
     await Asset.deleteMany({});
   });
 
-  // Test creating an asset (both draft and published)
+ 
   it("should create an asset in draft state", async () => {
     const res = await request(app)
       .post("/assets")
@@ -67,7 +67,7 @@ describe("Asset Management API", () => {
     expect(res.body).toHaveProperty("assetId");
   });
 
-  // Test listing an asset on the marketplace
+  
   it("should list an asset on the marketplace", async () => {
     const asset = new Asset({
       name: "Draft Asset",
@@ -89,7 +89,7 @@ describe("Asset Management API", () => {
     expect(updatedAsset.status).toEqual("published");
   });
 
-  // Test retrieving asset details
+  
   it("should retrieve asset details", async () => {
     const asset = new Asset({
       name: "Test Asset",
@@ -122,7 +122,7 @@ describe("Asset Management API", () => {
     expect(res.body).toHaveProperty("proposals", 3);
   });
 
-  // Test retrieving user's assets
+ 
   it("should retrieve all assets for a user", async () => {
     await Asset.create([
       {

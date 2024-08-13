@@ -1,4 +1,4 @@
-// src/controllers/authController.js
+
 const User = require("../models/User");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
@@ -7,10 +7,9 @@ const { JWT_SECRET } = process.env;
 exports.signup = async (req, res) => {
   const { username, password, email } = req.body;
   try {
-    console.log("Plain Password:", password); // Log plain password
+    console.log("Plain Password:", password);
     const hashedPassword = await bcrypt.hash(password, 10);
-    console.log("Hashed Password:", hashedPassword); // Log hashed password
-
+    console.log("Hashed Password:", hashedPassword); 
     const user = new User({ username, email, password: hashedPassword });
     await user.save();
 
@@ -31,7 +30,7 @@ exports.signup = async (req, res) => {
 exports.login = async (req, res) => {
   const { username, password } = req.body;
   try {
-    console.log("Login Request:", { username, password }); // Log request details
+    console.log("Login Request:", { username, password });
 
     const user = await User.findOne({ username });
     if (!user) {
@@ -39,9 +38,9 @@ exports.login = async (req, res) => {
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
-    console.log("Stored Hashed Password:", user.password); // Log stored hashed password
+    console.log("Stored Hashed Password:", user.password); 
     const isMatch = await bcrypt.compare(password, user.password);
-    console.log("Password Match:", isMatch); // Log password match result
+    console.log("Password Match:", isMatch); 
 
     if (!isMatch) {
       console.log("Password does not match");
